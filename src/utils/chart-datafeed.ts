@@ -24,7 +24,7 @@ export const createChartDatafeed = () => {
 		},
 
 		async getBars(symbolInfo: any, resolution: any, periodParams: any) {
-			const { from, to, firstDataRequest, rows } = periodParams;
+			const { from, to } = periodParams;
 			console.log("🔍 [DemoDatafeed] getBars called with:", {
 				symbolInfo,
 				resolution,
@@ -587,7 +587,7 @@ export const createChartDatafeed = () => {
 			from: Date,
 			to: Date,
 			resolution: any,
-			symbolInfo: any
+			_symbolInfo: any
 		) {
 			const bars = [];
 			const startTime = from.getTime() / 1000;
@@ -875,9 +875,22 @@ export const createChartDatafeed = () => {
 						.includes(userInput.toLowerCase())
 			);
 
-			// Call the callback with filtered results
+			console.log("🔍 [DemoDatafeed] Mock search results:", {
+				userInput,
+				totalSymbols: symbols.length,
+				filteredCount: filteredSymbols.length,
+				results: filteredSymbols.map(
+					(s) => `${s.symbol} - ${s.description}`
+				),
+			});
+
+			// Return filtered results in correct SDK format
 			if (typeof callback === "function") {
-				callback(filteredSymbols);
+				// The SDK expects an object with searchInProgress and items properties
+				callback({
+					searchInProgress: false,
+					items: filteredSymbols,
+				});
 			} else {
 				console.error(
 					"🔍 [DemoDatafeed] No valid callback provided to searchSymbols"
@@ -947,11 +960,19 @@ export const createChartDatafeed = () => {
 				});
 
 				if (callback) {
-					callback(transformedResults);
+					// The SDK expects an object with searchInProgress and items properties
+					callback({
+						searchInProgress: false,
+						items: transformedResults,
+					});
 				}
 			} else {
 				if (callback) {
-					callback([]);
+					// The SDK expects an object with searchInProgress and items properties
+					callback({
+						searchInProgress: false,
+						items: [],
+					});
 				}
 			}
 		},
@@ -961,7 +982,7 @@ export const createChartDatafeed = () => {
 			resolution: any,
 			onRealtimeCallback: (bar: any) => void,
 			subscriberUID: string,
-			onResetCacheNeededCallback?: () => void
+			_onResetCacheNeededCallback?: () => void
 		) {
 			console.log("📊 [DemoDatafeed] subscribeBars:", subscriberUID);
 			// For demo purposes, we'll simulate real-time updates
@@ -1012,8 +1033,8 @@ export const createChartDatafeed = () => {
 
 		// Start demo streaming for non-real-time symbols
 		startDemoStreaming(
-			symbolInfo: any,
-			resolution: any,
+			_symbolInfo: any,
+			_resolution: any,
 			onRealtimeCallback: (bar: any) => void,
 			subscriberUID: string
 		) {
@@ -1235,7 +1256,7 @@ export const createChartDatafeed = () => {
 						console.log("🔌 [DemoSocket] Mock connection closed");
 						this.demoSocket.readyState = 3; // WebSocket.CLOSED
 					},
-					addEventListener: (event: string, callback: any) => {
+					addEventListener: (event: string, _callback: any) => {
 						console.log(
 							`🔌 [DemoSocket] Mock event listener added for: ${event}`
 						);
@@ -1247,7 +1268,7 @@ export const createChartDatafeed = () => {
 		},
 
 		// Get Bybit WebSocket URL (mirroring streaming.js getWebSocketUrl)
-		getBybitWebSocketUrl(symbolInfo: any) {
+		getBybitWebSocketUrl(_symbolInfo: any) {
 			// Use Bybit's public WebSocket endpoint
 			return "wss://stream.bybit.com/v5/public/linear";
 		},
@@ -1256,7 +1277,7 @@ export const createChartDatafeed = () => {
 		handleBybitMessage(event: any) {
 			try {
 				const feedMessage = JSON.parse(event.data);
-				const { topic, type, data } = feedMessage;
+				const { topic } = feedMessage;
 
 				if (!topic || !topic.startsWith("publicTrade")) {
 					// Skip all non-trading events
@@ -1405,7 +1426,7 @@ export const createChartDatafeed = () => {
 		},
 
 		// Send demo unsubscription (mirroring streaming.js unsubscription logic)
-		sendDemoUnsubscription(unsubRequest: any, channelString: string) {
+		sendDemoUnsubscription(unsubRequest: any, _channelString: string) {
 			if (this.demoSocket && this.demoSocket.readyState === 1) {
 				this.demoSocket.send(JSON.stringify(unsubRequest));
 			}
@@ -1413,7 +1434,7 @@ export const createChartDatafeed = () => {
 
 		// Start streaming for a specific channel (mirroring streaming.js message handling)
 		startChannelStreaming(subscriptionItem: any) {
-			const { channelString, symbolInfo, handlers } = subscriptionItem;
+			const { channelString } = subscriptionItem;
 
 			if (!this.streamingIntervals) {
 				this.streamingIntervals = {};

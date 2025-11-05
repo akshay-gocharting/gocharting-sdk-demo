@@ -1,28 +1,14 @@
-import { useRef } from "react";
-import moment from "moment";
-import { Box } from "../components/Box";
-import { Text } from "../components/Text";
 import { ChartSDK } from "../components/ChartSDK";
-import {
-	ResponsiveLayout,
-	type ResponsiveLayoutHandle,
-} from "../components/ResponsiveLayout";
+import { ResponsiveLayout } from "../components/ResponsiveLayout";
 
 import { useResponsive } from "../hooks/useResponsive";
-import { MenuIcon } from "../components/MenuIcon";
 
 const CombineChart = () => {
-	const responsiveLayoutRef = useRef<ResponsiveLayoutHandle>(null);
 	const { isSmallDevice, isMediumDevice } = useResponsive();
 	const isMobile = isSmallDevice || isMediumDevice;
 
-	const handleMenuClick = () => {
-		responsiveLayoutRef.current?.openSidebar();
-	};
-
 	return (
 		<ResponsiveLayout
-			ref={responsiveLayoutRef}
 			mainProps={{
 				gap: isMobile ? "32px" : "42px",
 			}}

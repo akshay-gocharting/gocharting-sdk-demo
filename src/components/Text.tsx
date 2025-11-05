@@ -10,6 +10,7 @@ interface TextProps extends ComponentPropsWithRef<"span"> {
 	textAlign?: CSSProperties["textAlign"];
 	opacity?: CSSProperties["opacity"];
 	letterSpacing?: CSSProperties["letterSpacing"];
+	textTransform?: CSSProperties["textTransform"];
 }
 
 export const Text = styled.span<TextProps>`
@@ -21,4 +22,5 @@ export const Text = styled.span<TextProps>`
 	text-align: ${(props) => props.textAlign};
 	opacity: ${(props) => props.opacity};
 	letter-spacing: ${(props) => props.letterSpacing};
+	text-transform: ${(props) => props.textTransform};
 `;
