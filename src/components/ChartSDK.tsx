@@ -3,11 +3,15 @@ import { Box } from "./Box";
 import { Text } from "./Text";
 import { useResponsive } from "../hooks/useResponsive";
 import { createChartDatafeed } from "../utils/chart-datafeed";
-import * as GoChartingSDK from "@gocharting/chart-sdk";
+import GoChartingSDK from "@gocharting/chart-sdk";
+import type { ChartInstance, ChartConfig } from "@gocharting/chart-sdk";
+
+// Extract the appCallback type from ChartConfig
+type AppCallback = NonNullable<ChartConfig["appCallback"]>;
 
 export const ChartSDK = () => {
 	const chartContainerRef = useRef<HTMLDivElement>(null);
-	const widgetRef = useRef<any>(null);
+	const widgetRef = useRef<ChartInstance | null>(null);
 	const { isSmallDevice, isMediumDevice } = useResponsive();
 	const isMobile = isSmallDevice || isMediumDevice;
 
@@ -49,9 +53,9 @@ export const ChartSDK = () => {
 			// Cleanup chart on unmount
 			if (widgetRef.current) {
 				try {
-					widgetRef.current.remove();
+					widgetRef.current.destroy();
 				} catch (e) {
-					console.error("Error removing chart:", e);
+					console.error("Error destroying chart:", e);
 				}
 			}
 		};
@@ -79,7 +83,7 @@ export const ChartSDK = () => {
 		}
 	};
 
-	const setupDemoBrokerData = (chartInstance: any) => {
+	const setupDemoBrokerData = (chartInstance: ChartInstance) => {
 		console.log("🏦 Setting up demo broker data for trading...");
 
 		const demoBrokerData = {
@@ -104,6 +108,14 @@ export const ChartSDK = () => {
 		return 110000;
 	};
 
+	const handleAppCallback: AppCallback = (eventType, message, onClose) => {
+		console.log("*** APP CALLBACK TRIGGERED ***");
+		console.log("Event Type:", eventType);
+		console.log("Message:", message);
+		console.log("onClose callback:", onClose);
+		console.log(`Trading Event: ${eventType}`, message);
+	};
+
 	const initializeChart = () => {
 		if (!GoChartingSDK) {
 			setStatus("GoCharting SDK not available");
@@ -123,50 +135,47 @@ export const ChartSDK = () => {
 				chartContainerRef.current.id = "gocharting-chart-container";
 			}
 
+			const chartConfig = {
+				symbol: "BYBIT:FUTURE:BTCUSDT",
+				interval: "1D",
+				datafeed: datafeed,
+				debugLog: true,
+				licenseKey: "demo-550e8400-e29b-41d4-a716-446655440000",
+				theme: "dark",
+				enableTrading: true,
+				appCallback: handleAppCallback,
+				onReady: (chartInstance) => {
+					widgetRef.current = chartInstance;
+					setStatus("Chart loaded with simplified API!");
+
+					console.log("=== CHART READY - TRADING DIAGNOSTICS ===");
+					console.log("Chart instance:", !!chartInstance);
+					console.log("Trading enabled in config:", true);
+					console.log(
+						"setBrokerAccounts available:",
+						typeof chartInstance.setBrokerAccounts
+					);
+					console.log(
+						"Chart instance methods:",
+						Object.getOwnPropertyNames(chartInstance)
+					);
+					console.log("==========================================");
+
+					setupDemoBrokerData(chartInstance);
+				},
+				onError: (error) => {
+					console.error("Chart creation error:", error);
+					if (typeof error === "string") {
+						setStatus(`❌ Error creating chart: ${error}`);
+					} else {
+						setStatus(`❌ Error creating chart: ${error.message}`);
+					}
+				},
+			} satisfies ChartConfig;
+
 			const chart = GoChartingSDK.createChart(
 				"#gocharting-chart-container",
-				{
-					symbol: "BYBIT:FUTURE:BTCUSDT",
-					interval: "1D",
-					datafeed: datafeed,
-					debugLog: true,
-					licenseKey: "demo-550e8400-e29b-41d4-a716-446655440000",
-					theme: "dark",
-					enableTrading: true,
-					appCallback: (eventType: string, message: any) => {
-						console.log("*** APP CALLBACK TRIGGERED ***");
-						console.log("Event Type:", eventType);
-						console.log("Message:", message);
-						console.log(`Trading Event: ${eventType}`, message);
-					},
-					onReady: (chartInstance: any) => {
-						widgetRef.current = chartInstance;
-						setStatus("Chart loaded with simplified API!");
-
-						console.log(
-							"=== CHART READY - TRADING DIAGNOSTICS ==="
-						);
-						console.log("Chart instance:", !!chartInstance);
-						console.log("Trading enabled in config:", true);
-						console.log(
-							"setBrokerAccounts available:",
-							typeof chartInstance.setBrokerAccounts
-						);
-						console.log(
-							"Chart instance methods:",
-							Object.getOwnPropertyNames(chartInstance)
-						);
-						console.log(
-							"=========================================="
-						);
-
-						setupDemoBrokerData(chartInstance);
-					},
-					onError: (error: any) => {
-						console.error("Chart creation error:", error);
-						setStatus(`❌ Error creating chart: ${error.message}`);
-					},
-				}
+				chartConfig
 			);
 
 			widgetRef.current = chart;
@@ -205,7 +214,7 @@ export const ChartSDK = () => {
 
 		const orderId = `ORDER_${Date.now()}_${Math.random()
 			.toString(36)
-			.substr(2, 9)}`;
+			.substring(2, 11)}`;
 		const newOrder = {
 			orderId: orderId,
 			datetime: new Date(),
@@ -262,7 +271,7 @@ export const ChartSDK = () => {
 
 		const orderId = `ORDER_${Date.now()}_${Math.random()
 			.toString(36)
-			.substr(2, 9)}`;
+			.substring(2, 11)}`;
 		const newOrder = {
 			orderId: orderId,
 			datetime: new Date(),

@@ -1,5 +1,26 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+/**
+ * Creates a demo datafeed for the GoCharting SDK
+ * This datafeed supports both real Bybit data and generated demo data
+ *
+ * @returns Datafeed object compatible with GoCharting SDK with additional destroy() method
+ *
+ * @example
+ * ```typescript
+ * const datafeed = createChartDatafeed();
+ *
+ * const chart = createChart('#chart', {
+ *   symbol: 'BYBIT:FUTURE:BTCUSDT',
+ *   interval: '1D',
+ *   datafeed: datafeed,
+ *   licenseKey: 'your-key'
+ * });
+ *
+ * // Cleanup when done
+ * datafeed.destroy();
+ * ```
+ */
 export const createChartDatafeed = () => {
 	const datafeed = {
 		symbolCache: new Map<string, any>(),
@@ -83,7 +104,7 @@ export const createChartDatafeed = () => {
 		convertToUDFFormat(rawBars: any[]) {
 			if (!rawBars || rawBars.length === 0) {
 				return {
-					s: "no_data",
+					s: "no_data" as const,
 					nextTime: null,
 				};
 			}
@@ -115,7 +136,7 @@ export const createChartDatafeed = () => {
 				v.push(Number(bar.volume || 0));
 			});
 			return {
-				s: "ok",
+				s: "ok" as const,
 				t,
 				o,
 				h,
@@ -777,37 +798,27 @@ export const createChartDatafeed = () => {
 			);
 		},
 
-		async searchSymbols(
-			userInput: string,
-			exchange: string | ((result: any) => void),
-			symbolType: string,
-			onResultReadyCallback?: (result: any) => void
-		) {
-			// Handle different calling patterns - sometimes callback is 2nd param, sometimes 4th
-			const callback =
-				typeof exchange === "function"
-					? exchange
-					: onResultReadyCallback;
-
+		searchSymbols(userInput: string, callback: (symbols: any[]) => void) {
 			console.log("🔍 [DemoDatafeed] searchSymbols called:", {
 				userInput,
-				exchange:
-					typeof exchange === "function" ? "callback" : exchange,
-				symbolType,
 				hasCallback: typeof callback === "function",
 			});
 
 			// Try to use real GoCharting API first
-			try {
-				await this.searchSymbolsFromAPI(userInput, callback);
-				return;
-			} catch (error) {
+			this.searchSymbolsFromAPI(userInput, callback).catch((error) => {
 				console.log(
 					"🔍 [DemoDatafeed] GoCharting search API failed, using mock data:",
 					error
 				);
-			}
+				// Fallback to mock data
+				this.searchSymbolsMock(userInput, callback);
+			});
+		},
 
+		searchSymbolsMock(
+			userInput: string,
+			callback: (symbols: any[]) => void
+		) {
 			// Mock API response with symbols from your dropdown
 			const symbols = [
 				{
@@ -886,11 +897,8 @@ export const createChartDatafeed = () => {
 
 			// Return filtered results in correct SDK format
 			if (typeof callback === "function") {
-				// The SDK expects an object with searchInProgress and items properties
-				callback({
-					searchInProgress: false,
-					items: filteredSymbols,
-				});
+				// The SDK expects an array of SearchResult objects
+				callback(filteredSymbols);
 			} else {
 				console.error(
 					"🔍 [DemoDatafeed] No valid callback provided to searchSymbols"
@@ -1463,7 +1471,7 @@ export const createChartDatafeed = () => {
 							s: subscriptionItem.symbolInfo?.symbol || "DEMO",
 							S: Math.random() > 0.5 ? "Buy" : "Sell",
 							p: Math.round(lastPrice * 100) / 100,
-							i: Math.random().toString(36).substr(2, 9),
+							i: Math.random().toString(36).substring(2, 11),
 							v: (Math.random() * 10 + 0.1).toFixed(3),
 						},
 					],
@@ -1501,7 +1509,7 @@ export const createChartDatafeed = () => {
 					exchange: subscriptionItem.symbolInfo?.exchange || "DEMO",
 					segment: "FUTURE",
 					timeStamp: new Date(timestamp),
-					tradeID: Math.random().toString(36).substr(2, 9),
+					tradeID: Math.random().toString(36).substring(2, 11),
 					price: Number(price),
 					quantity: Number(size),
 					amount: Number(price) * Number(size),
